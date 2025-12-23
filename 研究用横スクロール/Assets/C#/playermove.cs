@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public class PlayerMove : MonoBehaviour
 {
@@ -16,9 +17,21 @@ public class PlayerMove : MonoBehaviour
     bool isGrounded;
     int coinCount = 0;
 
+    // コイン管理用
+    List<GameObject> coins = new List<GameObject>();
+    List<Vector3> coinPositions = new List<Vector3>();
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // コインを取得して初期位置を保存
+        GameObject[] coinObjects = GameObject.FindGameObjectsWithTag("coin");
+        foreach (GameObject coin in coinObjects)
+        {
+            coins.Add(coin);
+            coinPositions.Add(coin.transform.position);
+        }
 
         // ゴールを非表示
         if (goalObject != null)
@@ -83,7 +96,7 @@ public class PlayerMove : MonoBehaviour
         else if (collision.CompareTag("coin"))
         {
             coinCount++;
-            Destroy(collision.gameObject);
+            collision.gameObject.SetActive(false); // Destroyしない
             UpdateCoinUI();
 
             // ゴール出現
@@ -101,7 +114,7 @@ public class PlayerMove : MonoBehaviour
 
     void Restart()
     {
-        // 移動リセット
+        // プレイヤー位置リセット
         rb.linearVelocity = Vector2.zero;
         transform.position = respawnPoint.position;
 
@@ -115,7 +128,12 @@ public class PlayerMove : MonoBehaviour
             goalObject.SetActive(false);
         }
 
-        // ※注意：コインの再配置は別途必要（下に説明あり）
+        // コイン再配置
+        for (int i = 0; i < coins.Count; i++)
+        {
+            coins[i].SetActive(true);
+            coins[i].transform.position = coinPositions[i];
+        }
     }
 
     void UpdateCoinUI()
