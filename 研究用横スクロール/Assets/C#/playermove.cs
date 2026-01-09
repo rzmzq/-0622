@@ -5,19 +5,31 @@ using System.Collections.Generic;
 
 public class PlayerMove : MonoBehaviour
 {
+    [Header("移動設定")]
     public float moveSpeed = 5f;
     public float jumpPower = 7f;
+
+    [Header("リスポーン")]
     public Transform respawnPoint;
 
-    public GameObject goalObject;      // ゴールオブジェクト
-    public int requiredCoins = 3;      // 必要コイン数
-    public Text coinText;              // コインUI
+    [Header("ゴール設定")]
+    public GameObject goalObject;        // 実際のゴール
+    public Image goalPreviewImage;        // コイン不足時のゴールUI
+    public int requiredCoins = 3;
+
+    [Header("UI")]
+    public Text coinText;
+
+    [Header("マリオ風重力")]
+    public float fallMultiplier = 2.5f;
+    public float lowJumpMultiplier = 2f;
 
     Rigidbody2D rb;
     bool isGrounded;
+
     int coinCount = 0;
 
-    // コイン管理用
+    // コイン管理
     List<GameObject> coins = new List<GameObject>();
     List<Vector3> coinPositions = new List<Vector3>();
 
@@ -25,7 +37,7 @@ public class PlayerMove : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
 
-        // コインを取得して初期位置を保存
+        // コイン取得＆初期位置保存
         GameObject[] coinObjects = GameObject.FindGameObjectsWithTag("coin");
         foreach (GameObject coin in coinObjects)
         {
@@ -33,11 +45,12 @@ public class PlayerMove : MonoBehaviour
             coinPositions.Add(coin.transform.position);
         }
 
-        // ゴールを非表示
+        // 初期状態
         if (goalObject != null)
-        {
             goalObject.SetActive(false);
-        }
+
+        if (goalPreviewImage != null)
+            goalPreviewImage.gameObject.SetActive(true);
 
         UpdateCoinUI();
     }
@@ -49,6 +62,18 @@ public class PlayerMove : MonoBehaviour
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpPower);
         }
+
+        // マリオ風ジャンプ制御
+        if (rb.linearVelocity.y < 0)
+        {
+            rb.linearVelocity += Vector2.up * Physics2D.gravity.y
+                * (fallMultiplier - 1) * Time.deltaTime;
+        }
+        else if (rb.linearVelocity.y > 0 && !Input.GetKey(KeyCode.Space))
+        {
+            rb.linearVelocity += Vector2.up * Physics2D.gravity.y
+                * (lowJumpMultiplier - 1) * Time.deltaTime;
+        }
     }
 
     void FixedUpdate()
@@ -56,13 +81,9 @@ public class PlayerMove : MonoBehaviour
         float moveInput = 0f;
 
         if (Input.GetKey(KeyCode.A))
-        {
             moveInput = -1f;
-        }
         else if (Input.GetKey(KeyCode.D))
-        {
             moveInput = 1f;
-        }
 
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
     }
@@ -71,17 +92,13 @@ public class PlayerMove : MonoBehaviour
     void OnCollisionEnter2D(Collision2D collision)
     {
         if (!collision.collider.CompareTag("Dead"))
-        {
             isGrounded = true;
-        }
     }
 
     void OnCollisionExit2D(Collision2D collision)
     {
         if (!collision.collider.CompareTag("Dead"))
-        {
             isGrounded = false;
-        }
     }
 
     // トリガー判定
@@ -96,13 +113,17 @@ public class PlayerMove : MonoBehaviour
         else if (collision.CompareTag("coin"))
         {
             coinCount++;
-            collision.gameObject.SetActive(false); // Destroyしない
+            collision.gameObject.SetActive(false);
             UpdateCoinUI();
 
-            // ゴール出現
-            if (coinCount >= requiredCoins && goalObject != null)
+            // 規定数集めたらゴール解放
+            if (coinCount >= requiredCoins)
             {
-                goalObject.SetActive(true);
+                if (goalObject != null)
+                    goalObject.SetActive(true);
+
+                if (goalPreviewImage != null)
+                    goalPreviewImage.gameObject.SetActive(false);
             }
         }
         // ゴール
@@ -114,7 +135,7 @@ public class PlayerMove : MonoBehaviour
 
     void Restart()
     {
-        // プレイヤー位置リセット
+        // プレイヤーリセット
         rb.linearVelocity = Vector2.zero;
         transform.position = respawnPoint.position;
 
@@ -122,11 +143,12 @@ public class PlayerMove : MonoBehaviour
         coinCount = 0;
         UpdateCoinUI();
 
-        // ゴール非表示
+        // ゴール状態リセット
         if (goalObject != null)
-        {
             goalObject.SetActive(false);
-        }
+
+        if (goalPreviewImage != null)
+            goalPreviewImage.gameObject.SetActive(true);
 
         // コイン再配置
         for (int i = 0; i < coins.Count; i++)

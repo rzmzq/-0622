@@ -17,6 +17,8 @@ public class RandomPitchBGM : MonoBehaviour
     AudioSource audioSource;
     float timer;
 
+    float currentPitch;   // 現在のピッチ
+
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
@@ -41,6 +43,21 @@ public class RandomPitchBGM : MonoBehaviour
 
     void ChangePitch()
     {
-        audioSource.pitch = Random.Range(minPitch, maxPitch);
+        currentPitch = Random.Range(minPitch, maxPitch);
+        audioSource.pitch = currentPitch;
+    }
+
+    // ★ 今が「速いBGM」か？
+    public bool IsHighPitch()
+    {
+        float center = (minPitch + maxPitch) * 0.5f;
+        return currentPitch > center;
+    }
+
+    // ★ 今が「遅いBGM」か？
+    public bool IsLowPitch()
+    {
+        float center = (minPitch + maxPitch) * 0.5f;
+        return currentPitch <= center;
     }
 }
